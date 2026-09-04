@@ -11,7 +11,7 @@
   "plugins": [
     {
       "name": "session-namer",
-      "description": "Automatically name every Claude Code session from its first prompt, using a small model. Replaces reaching for /rename.",
+      "description": "Automatically name every Claude Code session from the conversation so far, with a single model call. Replaces reaching for /rename.",
       "version": "0.2.1",
       "author": {
         "name": "sorrycc",

@@ -2,9 +2,9 @@
 
 Give every Claude Code session a real name, automatically.
 
-Claude Code sessions are listed by their id and first message, which makes `/resume`
-a guessing game. This plugin names each session from its first prompt using a small
-model, so your session list reads like a changelog:
+Claude Code lists sessions by id and first message, which makes `/resume` a
+guessing game. This plugin names each session with a single model call on the
+conversation so far, so your session list reads like a changelog:
 
 ```
 0904｜修复｜登录页刷新token丢失
@@ -12,7 +12,9 @@ model, so your session list reads like a changelog:
 0903｜优化｜批次文字显示
 ```
 
-Background: https://x.com/chenchengpro/status/2095410400720482506
+The default format is `MMDD｜type｜summary`, in Chinese: the type is one of
+功能, 设计, 修复, 优化, 发布, 探索, 文档, 研究, and the summary is at most 10
+characters. Any other convention can be configured, see below.
 
 ## Install
 
@@ -27,29 +29,21 @@ Requires `jq` and the `claude` CLI on your `PATH`.
 
 ## Configuration
 
-Everything is optional — out of the box you get the format shown above.
+Everything is optional. Out of the box you get the format shown above.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `SESSION_NAMER_FORMAT` | built-in | Your naming convention, written as prose for the model |
+| `SESSION_NAMER_FORMAT` | built-in | Naming convention, written as prose for the model |
 | `SESSION_NAMER_MODEL` | `sonnet` | Model that writes the name |
-| `SESSION_NAMER_DISABLE` | unset | Set to anything to turn the plugin off |
+| `SESSION_NAMER_DISABLE` | unset | Set to any value to turn the plugin off |
 | `SESSION_NAMER_CLAUDE_BIN` | `claude` on `PATH` | CLI used to write the name |
 | `SESSION_NAMER_MAX_RENAMES` | `3` | How many times the plugin may name one session |
-| `SESSION_NAMER_MAX_TURNS` | `20` | Give up on a still-unnamed session after this many turns |
+| `SESSION_NAMER_MAX_TURNS` | `20` | Stop trying to name a still-unnamed session after this many turns |
 
-> **Running under QoderCLI?** Its models are named differently — there is no
-> `sonnet`. Use the `Efficient` tier, and point the plugin at `qodercli` so it
-> does not pick up a `claude` binary that happens to be on your `PATH`:
->
-> ```json
-> { "env": { "SESSION_NAMER_MODEL": "Efficient", "SESSION_NAMER_CLAUDE_BIN": "qodercli" } }
-> ```
->
-> `qodercli --list-models` shows the rest (`Auto`, `Ultimate`, `Performance`,
-> `Efficient`, `Lite`).
+The convention is resolved in this order: `SESSION_NAMER_FORMAT`, then a
+per-project file, then the built-in default.
 
-Set these in `env` in your `settings.json`:
+Set variables under `env` in your `settings.json`:
 
 ```json
 {
@@ -59,10 +53,7 @@ Set these in `env` in your `settings.json`:
 }
 ```
 
-For a per-project convention, write it to `.claude/session-name.md` instead — or
-`.qoder/session-name.md` under QoderCLI, which mirrors the same per-project config
-directory. Both are checked, the running CLI's own directory first. The
-environment variable wins over either:
+For a per-project convention, write it to `.claude/session-name.md`:
 
 ```
 Format: [TICKET] short imperative title in English, max 8 words.
@@ -76,36 +67,45 @@ api: add rate limiting to public endpoints
 [NOJIRA] Migrate billing cron to new scheduler
 ```
 
-## How it works
+### QoderCLI
 
-A session's title lives in its transcript as a JSONL line:
+QoderCLI names its models differently, so there is no `sonnet`. Use the
+`Efficient` tier and point the plugin at `qodercli`, so it does not pick up a
+`claude` binary that happens to be on your `PATH`:
 
 ```json
-{"type":"custom-title","customTitle":"…","sessionId":"…"}
+{ "env": { "SESSION_NAMER_MODEL": "Efficient", "SESSION_NAMER_CLAUDE_BIN": "qodercli" } }
 ```
 
-Claude Code reads the *last* such line, so appending one renames the session —
-this is the same mechanism `/rename` uses.
+`qodercli --list-models` shows the other tiers. The per-project file is read
+from `.qoder/session-name.md` under QoderCLI, with `.claude/` as a fallback.
 
-The plugin registers two hooks:
+## How it works
 
-- **`UserPromptSubmit`** — names the session as the conversation takes shape.
-- **`SessionStart`** — covers resumed sessions, recovering the topic from the
-  existing transcript.
+The plugin registers two async hooks, so the model call never blocks your turn:
 
-Both run with `async: true`, so the model call never blocks your turn.
+- **`UserPromptSubmit`** names the session as the conversation takes shape.
+- **`SessionStart`** covers resumed sessions, using the existing transcript.
 
-### Opening with "hi" does not name the session "greeting"
+A session's title is the last `{"type":"custom-title"}` line in its transcript.
+Appending one renames the session, which is the same mechanism `/rename` uses.
+A name you set with `/rename` is never overwritten.
 
-Naming waits for actual work, and stays open to revision for a while:
+The only network call is the model request. It carries up to the first three
+and last three user turns, capped at 2000 characters, plus the current title
+and your convention.
 
-- A prompt carrying no task — a greeting, a thank-you, a test message — is
-  **skipped**, and the session stays unnamed until real work arrives.
-- The name is written from the **conversation so far**, not from whichever single
-  prompt happened to trigger the hook.
-- The plugin's own names are **provisional**: if the work clearly moves on, the
-  name is upgraded, up to `SESSION_NAMER_MAX_RENAMES` times. A name that still
-  fits is left alone, so the title does not churn.
+### Naming behavior
+
+- A prompt with no task, such as a greeting or a test message, is skipped. The
+  session stays unnamed until real work arrives.
+- The name reflects the conversation so far, not the single prompt that
+  triggered the hook.
+- The plugin's own names are provisional. If the work clearly moves on, the name
+  is upgraded, up to `SESSION_NAMER_MAX_RENAMES` times. A name that still fits
+  is left alone.
+- With the built-in format, output that does not match the expected shape is
+  discarded. A custom convention is only checked for being non-empty.
 
 ```
 "hello"                          → (unnamed)
@@ -115,17 +115,9 @@ Naming waits for actual work, and stays open to revision for a while:
 "先不管支付了，把 CI 迁到 GitHub Actions" → 0904｜优化｜迁移CI到GitHub Actions
 ```
 
-A name **you** set with `/rename` is never touched. The plugin marks its own
-writes with `"sessionNamer": true` and matches by value, so it can tell its own
-name from yours even after Claude Code re-appends the title as session metadata.
-A name that does not match the active convention is discarded rather than written.
+## Background
 
-## Notes
-
-- The nested `claude -p` call would re-trigger these hooks, so the script guards
-  against recursion with `SESSION_NAMER_RUNNING`.
-- Nothing is sent anywhere except the model call that writes the name, and only
-  your opening prompt is included in it.
+Why this exists: https://x.com/chenchengpro/status/2095410400720482506
 
 ## License
 
