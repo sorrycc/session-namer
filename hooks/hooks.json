@@ -1,0 +1,31 @@
+{
+  "description": "Name the session from its first prompt (SessionStart + UserPromptSubmit, both async).",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/rename-session.sh\"",
+            "async": true,
+            "timeout": 120,
+            "statusMessage": "Naming session..."
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/rename-session.sh\"",
+            "async": true,
+            "timeout": 120,
+            "statusMessage": "Naming session..."
+          }
+        ]
+      }
+    ]
+  }
+}

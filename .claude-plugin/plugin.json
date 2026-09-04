@@ -1,0 +1,13 @@
+{
+  "name": "session-namer",
+  "version": "0.1.0",
+  "description": "Automatically name every Claude Code session from its first prompt, using a small model. Replaces reaching for /rename.",
+  "author": {
+    "name": "sorrycc",
+    "email": "sorrycc@gmail.com"
+  },
+  "homepage": "https://github.com/sorrycc/session-namer",
+  "repository": "https://github.com/sorrycc/session-namer",
+  "license": "MIT",
+  "keywords": ["hooks", "session", "rename", "productivity"]
+}

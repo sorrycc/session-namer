@@ -1,0 +1,25 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "session-namer",
+  "metadata": {
+    "description": "Automatic session naming for Claude Code."
+  },
+  "owner": {
+    "name": "sorrycc",
+    "email": "sorrycc@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "session-namer",
+      "description": "Automatically name every Claude Code session from its first prompt, using a small model. Replaces reaching for /rename.",
+      "version": "0.1.0",
+      "author": {
+        "name": "sorrycc",
+        "email": "sorrycc@gmail.com"
+      },
+      "source": "./",
+      "category": "productivity",
+      "tags": ["hooks", "session", "rename"]
+    }
+  ]
+}
