@@ -18,7 +18,7 @@
 #   SESSION_NAMER_MODEL=haiku    model used to write the name (default: sonnet)
 #   SESSION_NAMER_CLAUDE_BIN=... CLI used to write the name (default: claude on PATH)
 #   SESSION_NAMER_FORMAT="..."   your naming convention, in prose, for the model
-#   .claude/session-name.md      same thing, per project (overridden by the env var)
+#   .claude/session-name.md      same thing, per project (or .qoder/ under QoderCLI)
 #   SESSION_NAMER_MAX_RENAMES=3  how many times the plugin may name one session
 #   SESSION_NAMER_MAX_TURNS=20   stop trying to name a session after this many turns
 #
@@ -37,8 +37,10 @@ set -uo pipefail
 export SESSION_NAMER_RUNNING=1
 
 command -v jq >/dev/null 2>&1 || exit 0
-CLAUDE_BIN="${SESSION_NAMER_CLAUDE_BIN:-$(command -v claude)}"
-[ -x "$CLAUDE_BIN" ] || exit 0
+# Resolve through `command -v` so a bare name on PATH ("qodercli") works as
+# well as an absolute path — `[ -x ]` alone would reject the former.
+CLAUDE_BIN=$(command -v "${SESSION_NAMER_CLAUDE_BIN:-claude}" 2>/dev/null)
+[ -n "$CLAUDE_BIN" ] || exit 0
 
 MODEL="${SESSION_NAMER_MODEL:-sonnet}"
 MAX_RENAMES="${SESSION_NAMER_MAX_RENAMES:-3}"
@@ -102,8 +104,20 @@ topic=$(printf '%s' "$topic" | head -c 2000)
 
 # --- Naming convention: env var > per-project file > built-in default ------
 convention="${SESSION_NAMER_FORMAT:-}"
-if [ -z "$convention" ] && [ -n "$project_dir" ] && [ -f "$project_dir/.claude/session-name.md" ]; then
-  convention=$(head -c 2000 "$project_dir/.claude/session-name.md")
+if [ -z "$convention" ] && [ -n "$project_dir" ]; then
+  # Claude Code keeps per-project config in .claude/; QoderCLI mirrors it in
+  # .qoder/. Check the running CLI's own directory first, so a repo carrying
+  # both gets the convention meant for the tool actually in use.
+  case "$(basename "$CLAUDE_BIN")" in
+    *qoder*) config_dirs=".qoder .claude" ;;
+    *)       config_dirs=".claude .qoder" ;;
+  esac
+  for dir in $config_dirs; do
+    if [ -f "$project_dir/$dir/session-name.md" ]; then
+      convention=$(head -c 2000 "$project_dir/$dir/session-name.md")
+      break
+    fi
+  done
 fi
 
 builtin_default=0

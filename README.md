@@ -12,6 +12,8 @@ model, so your session list reads like a changelog:
 0903｜优化｜批次文字显示
 ```
 
+Background: https://x.com/chenchengpro/status/2095410400720482506
+
 ## Install
 
 ```
@@ -57,8 +59,10 @@ Set these in `env` in your `settings.json`:
 }
 ```
 
-For a per-project convention, write it to `.claude/session-name.md` instead — the
-environment variable wins if both are present:
+For a per-project convention, write it to `.claude/session-name.md` instead — or
+`.qoder/session-name.md` under QoderCLI, which mirrors the same per-project config
+directory. Both are checked, the running CLI's own directory first. The
+environment variable wins over either:
 
 ```
 Format: [TICKET] short imperative title in English, max 8 words.
