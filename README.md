@@ -32,6 +32,18 @@ Everything is optional — out of the box you get the format shown above.
 | `SESSION_NAMER_FORMAT` | built-in | Your naming convention, written as prose for the model |
 | `SESSION_NAMER_MODEL` | `sonnet` | Model that writes the name |
 | `SESSION_NAMER_DISABLE` | unset | Set to anything to turn the plugin off |
+| `SESSION_NAMER_CLAUDE_BIN` | `claude` on `PATH` | CLI used to write the name |
+
+> **Running under QoderCLI?** Its models are named differently — there is no
+> `sonnet`. Use the `Efficient` tier, and point the plugin at `qodercli` so it
+> does not pick up a `claude` binary that happens to be on your `PATH`:
+>
+> ```json
+> { "env": { "SESSION_NAMER_MODEL": "Efficient", "SESSION_NAMER_CLAUDE_BIN": "qodercli" } }
+> ```
+>
+> `qodercli --list-models` shows the rest (`Auto`, `Ultimate`, `Performance`,
+> `Efficient`, `Lite`).
 
 Set these in `env` in your `settings.json`:
 

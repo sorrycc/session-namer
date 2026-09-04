@@ -12,8 +12,14 @@
 # Configuration (all optional):
 #   SESSION_NAMER_DISABLE=1      turn the plugin off
 #   SESSION_NAMER_MODEL=haiku    model used to write the name (default: sonnet)
+#   SESSION_NAMER_CLAUDE_BIN=... CLI used to write the name (default: claude on PATH)
 #   SESSION_NAMER_FORMAT="..."   your naming convention, in prose, for the model
 #   .claude/session-name.md      same thing, per project (overridden by the env var)
+#
+# Under QoderCLI the model names differ — there is no `sonnet`. Use the
+# `Efficient` tier, and point the plugin at that CLI so it does not pick up a
+# `claude` binary that happens to be on PATH:
+#   SESSION_NAMER_MODEL=Efficient SESSION_NAMER_CLAUDE_BIN=qodercli
 
 set -uo pipefail
 
