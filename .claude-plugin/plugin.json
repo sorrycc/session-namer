@@ -1,6 +1,6 @@
 {
   "name": "session-namer",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Automatically name every Claude Code session from its first prompt, using a small model. Replaces reaching for /rename.",
   "author": {
     "name": "sorrycc",

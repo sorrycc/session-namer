@@ -33,6 +33,8 @@ Everything is optional — out of the box you get the format shown above.
 | `SESSION_NAMER_MODEL` | `sonnet` | Model that writes the name |
 | `SESSION_NAMER_DISABLE` | unset | Set to anything to turn the plugin off |
 | `SESSION_NAMER_CLAUDE_BIN` | `claude` on `PATH` | CLI used to write the name |
+| `SESSION_NAMER_MAX_RENAMES` | `3` | How many times the plugin may name one session |
+| `SESSION_NAMER_MAX_TURNS` | `20` | Give up on a still-unnamed session after this many turns |
 
 > **Running under QoderCLI?** Its models are named differently — there is no
 > `sonnet`. Use the `Efficient` tier, and point the plugin at `qodercli` so it
@@ -83,15 +85,36 @@ this is the same mechanism `/rename` uses.
 
 The plugin registers two hooks:
 
-- **`UserPromptSubmit`** — names the session from your first prompt.
+- **`UserPromptSubmit`** — names the session as the conversation takes shape.
 - **`SessionStart`** — covers resumed sessions, recovering the topic from the
-  opening turns of the existing transcript.
+  existing transcript.
 
 Both run with `async: true`, so the model call never blocks your turn.
 
-A session is named **once**. If a title already exists — set by this plugin, by
-`/rename`, or by a previous run — it is left alone. A name that does not match the
-active convention is discarded rather than written.
+### Opening with "hi" does not name the session "greeting"
+
+Naming waits for actual work, and stays open to revision for a while:
+
+- A prompt carrying no task — a greeting, a thank-you, a test message — is
+  **skipped**, and the session stays unnamed until real work arrives.
+- The name is written from the **conversation so far**, not from whichever single
+  prompt happened to trigger the hook.
+- The plugin's own names are **provisional**: if the work clearly moves on, the
+  name is upgraded, up to `SESSION_NAMER_MAX_RENAMES` times. A name that still
+  fits is left alone, so the title does not churn.
+
+```
+"hello"                          → (unnamed)
+"thanks!"                        → (unnamed)
+"重构支付网关的重试逻辑，加上指数退避"    → 0904｜优化｜支付网关重试指数退避
+"退避的最大间隔设成 30 秒"           → 0904｜优化｜支付网关重试指数退避   (unchanged)
+"先不管支付了，把 CI 迁到 GitHub Actions" → 0904｜优化｜迁移CI到GitHub Actions
+```
+
+A name **you** set with `/rename` is never touched. The plugin marks its own
+writes with `"sessionNamer": true` and matches by value, so it can tell its own
+name from yours even after Claude Code re-appends the title as session metadata.
+A name that does not match the active convention is discarded rather than written.
 
 ## Notes
 
