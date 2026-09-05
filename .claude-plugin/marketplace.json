@@ -12,7 +12,7 @@
     {
       "name": "session-namer",
       "description": "Automatically name every Claude Code session from the conversation so far, with a single model call. Replaces reaching for /rename.",
-      "version": "0.2.1",
+      "version": "0.3.0",
       "author": {
         "name": "sorrycc",
         "email": "sorrycc@gmail.com"

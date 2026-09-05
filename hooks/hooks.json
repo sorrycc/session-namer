@@ -1,5 +1,5 @@
 {
-  "description": "Name the session from its first prompt (SessionStart + UserPromptSubmit, both async).",
+  "description": "Name the session from the conversation so far (SessionStart + UserPromptSubmit, both async).",
   "hooks": {
     "SessionStart": [
       {
