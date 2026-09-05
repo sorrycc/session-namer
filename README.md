@@ -27,7 +27,8 @@ convention can be configured, see below.
 
 Update later with `/plugin update`.
 
-Requires `jq` and the `claude` CLI on your `PATH`.
+Requires `jq` and the `claude` CLI on your `PATH`. Under QoderCLI the
+`qodercli` CLI is used instead, automatically; see below.
 
 ## Configuration
 
@@ -36,9 +37,9 @@ Everything is optional. Out of the box you get the format shown above.
 | Variable | Default | Purpose |
 | --- | --- | --- |
 | `SESSION_NAMER_FORMAT` | built-in | Naming convention, written as prose for the model |
-| `SESSION_NAMER_MODEL` | `sonnet` | Model that writes the name |
+| `SESSION_NAMER_MODEL` | `sonnet`, or `Efficient` under QoderCLI | Model that writes the name |
 | `SESSION_NAMER_DISABLE` | unset | Set to any value to turn the plugin off |
-| `SESSION_NAMER_CLAUDE_BIN` | `claude` on `PATH` | CLI used to write the name |
+| `SESSION_NAMER_CLAUDE_BIN` | `claude`, or `qodercli` under QoderCLI | CLI used to write the name, looked up on `PATH` |
 | `SESSION_NAMER_MAX_RENAMES` | `3` | How many times the plugin may name one session |
 | `SESSION_NAMER_MAX_TURNS` | `20` | Stop trying to name a still-unnamed session after this many turns |
 | `SESSION_NAMER_RECHECK_EVERY` | `5` | Once named, reconsider the name every this many turns |
@@ -73,16 +74,21 @@ api: add rate limiting to public endpoints
 
 ### QoderCLI
 
-QoderCLI names its models differently, so there is no `sonnet`. Use the
-`Efficient` tier and point the plugin at `qodercli`, so it does not pick up a
-`claude` binary that happens to be on your `PATH`:
+Nothing to configure. The plugin recognises QoderCLI from the environment it
+gives its hooks, calls `qodercli` (or `qoderclicn`, the CN edition) instead of
+`claude`, and asks the `Efficient` tier for the name. If that tier is not in
+your account's catalog, the call is retried with your default model.
+`qodercli --list-models` shows the tiers; set `SESSION_NAMER_MODEL` to use
+another one.
 
-```json
-{ "env": { "SESSION_NAMER_MODEL": "Efficient", "SESSION_NAMER_CLAUDE_BIN": "qodercli" } }
+The per-project file is read from `.qoder/session-name.md`, with `.claude/`
+as a fallback. QoderCLI has no `env` block in its `settings.json`, so to set
+any of the variables above put them in `.qoder/.env` in the project or in
+`~/.qoder/.env`:
+
 ```
-
-`qodercli --list-models` shows the other tiers. The per-project file is read
-from `.qoder/session-name.md` under QoderCLI, with `.claude/` as a fallback.
+SESSION_NAMER_MODEL=Lite
+```
 
 ## How it works
 
@@ -95,11 +101,12 @@ A session's title is the last `{"type":"custom-title"}` line in its transcript.
 Appending one renames the session, which is the same mechanism `/rename` uses.
 A name you set with `/rename` is never overwritten.
 
-The only network call is the model request. It runs `claude -p` in a bare
-configuration: a short system prompt of its own, no tools, no MCP servers, and
-no saved session, so it costs a few hundred tokens and never shows up in
-`/resume`. It carries up to the first three and last three user turns, capped
-at 2000 characters, plus the current title and your convention.
+The only network call is the model request. It runs `claude -p`, or
+`qodercli -p` under QoderCLI, in a bare configuration: a short system prompt
+of its own, no tools, no MCP servers, and no saved session, so it costs a few
+hundred tokens and never shows up in `/resume`. It carries up to the first
+three and last three user turns, capped at 2000 characters, plus the current
+title and your convention.
 
 ### Naming behavior
 
