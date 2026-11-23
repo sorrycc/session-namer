@@ -5,14 +5,13 @@
     "description": "Automatic session naming for Claude Code."
   },
   "owner": {
-    "name": "sorrycc",
-    "email": "sorrycc@gmail.com"
+    "name": "coxjc"
   },
   "plugins": [
     {
       "name": "session-namer",
-      "description": "Automatically name every Claude Code session from the conversation so far, with a single model call. Replaces reaching for /rename.",
-      "version": "0.4.0",
+      "description": "Automatically name every Claude Code session from the full conversation, with a single Haiku call. Replaces reaching for /rename.",
+      "version": "0.5.0",
       "author": {
         "name": "sorrycc",
         "email": "sorrycc@gmail.com"

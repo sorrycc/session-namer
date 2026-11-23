@@ -1,13 +1,13 @@
 {
   "name": "session-namer",
-  "version": "0.4.0",
-  "description": "Automatically name every Claude Code session from the conversation so far, with a single model call. Replaces reaching for /rename.",
+  "version": "0.5.0",
+  "description": "Automatically name every Claude Code session from the full conversation, with a single Haiku call. Replaces reaching for /rename.",
   "author": {
     "name": "sorrycc",
     "email": "sorrycc@gmail.com"
   },
-  "homepage": "https://github.com/sorrycc/session-namer",
-  "repository": "https://github.com/sorrycc/session-namer",
+  "homepage": "https://github.com/coxjc/cc-session-namer",
+  "repository": "https://github.com/coxjc/cc-session-namer",
   "license": "MIT",
   "keywords": ["hooks", "session", "rename", "productivity"]
 }
