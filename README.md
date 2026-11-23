@@ -4,19 +4,20 @@ Give every Claude Code session a real name, automatically.
 
 Claude Code lists sessions by id and first message, which makes `/resume` a
 guessing game. This plugin names each session with a single model call on the
-conversation so far, so your session list reads like a changelog:
+conversation so far, so your session list reads like a task list:
 
 ```
-0904 fix: login token lost on refresh
-0904 feat: 添加会话自动命名钩子
-0903 refactor: batch text rendering
+Add Incline Dwelling Policy Alias
+Design Bordereau Schedule UI
+[AH-40] Fix Excluded Procedure Mapper Modifier Drop
 ```
 
-The default format is `MMDD type: summary`. The date is the day the session
-started. The type is one of feat, design, fix, refactor, release, explore,
-docs, research, chore. The summary is written in the language you write in:
-at most 6 words in English, or 10 characters in Chinese or Japanese. Any other
-convention can be configured, see below.
+The default format is a short task title: Title Case, starting with an
+imperative verb, 3 to 6 words, in the language you write in. When the session
+is about an issue-tracker ticket, its id is prefixed in square brackets. The
+id is taken from the conversation or from the git branch name, so a branch
+called `ah-40-excluded-procedures` is enough. Any other convention can be
+configured, see below.
 
 ## Install
 
@@ -100,23 +101,20 @@ first 20,000 and its last 80,000.
   turns the name is reconsidered, and if the work has clearly moved on it is
   upgraded, up to `SESSION_NAMER_MAX_RENAMES` times. A name that still fits is
   left alone.
-- With the built-in format, output that does not match the expected shape is
-  discarded. A custom convention is only checked for being non-empty.
+- With the built-in format, output longer than 10 words is discarded as the
+  model explaining itself. A custom convention is only checked for being
+  non-empty.
 
 ```
 "hello"                                              → (unnamed)
 "thanks!"                                            → (unnamed)
-"add exponential backoff to payment gateway retries" → 0904 feat: payment gateway retry backoff
-"cap the backoff at 30 seconds"                      → 0904 feat: payment gateway retry backoff   (unchanged)
-"forget payments, move CI to GitHub Actions"         → 0904 chore: move ci to github actions
+"add exponential backoff to payment gateway retries" → Add Payment Gateway Retry Backoff
+"cap the backoff at 30 seconds"                      → Add Payment Gateway Retry Backoff   (unchanged)
+"forget payments, move CI to GitHub Actions"         → Move CI to GitHub Actions
+"pick up ENG-1234, the export drops september rows"  → [ENG-1234] Fix Export Dropping September Rows
 ```
 
-A conversation in another language gets its summary in that language, with
-the type kept in English:
-
-```
-"重构支付网关的重试逻辑，加上指数退避"                    → 0904 refactor: 支付网关重试指数退避
-```
+A conversation in another language gets its title in that language.
 
 ### Troubleshooting
 

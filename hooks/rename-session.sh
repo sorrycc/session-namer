@@ -181,21 +181,12 @@ topic=$(printf '%s' "$turns" | jq -r --arg p "$prompt" \
 ' 2>/dev/null)
 [ -n "$topic" ] || { log "skip: nothing to name yet"; exit 0; }
 
-# --- When did this session start? ------------------------------------------
+# --- Which branch is the work on? ------------------------------------------
 #
-# The date in the default format is the session's first day, not the day of
-# the rename, so an upgraded name keeps its prefix. Transcript timestamps are
-# UTC; the name uses local time.
-started=$(grep -m1 -o '"timestamp":"[^"]*"' "$transcript" 2>/dev/null | cut -d'"' -f4)
-epoch=$(printf '%s' "$started" | jq -Rr 'sub("\\.[0-9]+Z$"; "Z") | try fromdateiso8601 catch empty' 2>/dev/null)
-session_date="" session_day=""
-if [ -n "$epoch" ]; then
-  # `date -r` is BSD/macOS, `date -d @` is GNU.
-  session_date=$(date -r "$epoch" +%m%d 2>/dev/null || date -d "@$epoch" +%m%d 2>/dev/null)
-  session_day=$(date -r "$epoch" +%Y-%m-%d 2>/dev/null || date -d "@$epoch" +%Y-%m-%d 2>/dev/null)
-fi
-[ -n "$session_date" ] || session_date=$(date +%m%d)
-[ -n "$session_day" ] || session_day=$(date +%Y-%m-%d)
+# Branch names often carry the ticket id (ah-40-excluded-procedures), which
+# the conversation itself may never spell out. Passed to the model as a hint.
+branch=$(grep -o '"gitBranch":"[^"]*"' "$transcript" 2>/dev/null | tail -n 1 | cut -d'"' -f4)
+case "$branch" in main|master|HEAD) branch="" ;; esac
 
 # --- Naming convention: env var > per-project file > built-in default ------
 convention="${SESSION_NAMER_FORMAT:-}"
@@ -208,9 +199,13 @@ fi
 builtin_default=0
 if [ -z "$convention" ]; then
   builtin_default=1
-  convention="Format: $session_date <type>: <summary>
-- <type> is one of: feat design fix refactor release explore docs research chore
-- <summary> is in the language the user writes in: at most 6 words in English, or 10 characters in Chinese or Japanese. Lowercase where that applies, no trailing period."
+  convention="Format: a short task title in Title Case that starts with an imperative verb.
+- 3 to 6 words, no trailing period, no type prefix, no date.
+- Name the specific thing being worked on, not the activity in general.
+- Examples: Add Incline Dwelling Policy Alias / Design Bordereau Schedule UI / Confirm ITD Coverage Code 999 / Plan Queue Dual-Write Validation
+- If the session is about an issue-tracker ticket (an id such as AH-40 or ENG-1234, in the conversation or the branch name), prefix the id in square brackets, uppercase: [AH-40] Add Excluded Procedure Mapping
+- Never invent a ticket id. No ticket, no prefix.
+- Write the title in the language the user writes in."
 fi
 
 if [ -n "$current_title" ]; then
@@ -223,7 +218,7 @@ thank-you, a test message, small talk — output exactly: SKIP"
 fi
 
 read -r -d '' instructions <<EOF
-You name coding sessions. Today is $(date +%Y-%m-%d); this session started on $session_day.
+You name coding sessions.${branch:+ The work is on git branch: $branch}
 Output ONLY the name — no explanation, no quotes, no surrounding punctuation, one line.
 
 $standing
@@ -256,13 +251,13 @@ case "$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]' | tr -d '[:punct:][:spa
   SKIP) log "skip: model declined"; exit 0 ;;
 esac
 
-# Validate. The built-in convention has a known shape, so check it strictly;
-# a custom convention can be anything, so only sanity-check it.
+# Validate. The built-in convention is a short title, so anything long is the
+# model explaining itself rather than naming; a custom convention can be
+# anything, so only sanity-check it.
 if [ "$builtin_default" = 1 ]; then
-  printf '%s' "$name" | grep -qE '^[0-9]{4} (feat|design|fix|refactor|release|explore|docs|research|chore): [^[:space:]]' \
-    || { log "discard: $name"; exit 0; }
-  # The date is ours, whatever the model copied.
-  name="$session_date${name#????}"
+  name="${name%.}"
+  case "$name" in ''|'<'*) log "discard: $name"; exit 0 ;; esac
+  [ "$(printf '%s' "$name" | wc -w)" -le 10 ] || { log "discard: $name"; exit 0; }
 else
   case "$name" in ''|'<'*) log "discard: $name"; exit 0 ;; esac
 fi
